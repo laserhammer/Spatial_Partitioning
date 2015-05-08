@@ -11,9 +11,12 @@ int KDTreeManager::_maxDepth;
 int KDTreeManager::_maxMaxDepth;
 RenderShape KDTreeManager::_lineTemplate;
 
+// As with the octtreen and quadtree, the entire tree is instantiated when init is called. Unlike the previous trees, the 
+// entire tree will be used to sort the array of shapes. In the case of this particular demo however, the max depth of the
+// tree can be changed, so some of the nodes will be inactive if they are beyond the current max depth.
 void KDTreeManager::InitKDTree(int maxDepth, RenderShape lineTemplate)
 {
-	
+
 	_maxDepth = maxDepth;
 	_maxMaxDepth = maxDepth;
 	_lineTemplate = lineTemplate;
@@ -80,6 +83,9 @@ void BubbleSort(std::vector<InteractiveShape*>& vector, int start, int end, Axis
 	}
 }
 
+// For each node of the K-D tree, each node is deactivated and the shapes are sorted back into the tree.
+// Each node possesses a beginning and an ending index. The shapes in the array between these values are 
+// sorted based on the sorting axis of the current node of the tree. 
 void KDTreeManager::UpdateKDtree()
 {
 	unsigned int size = _kdTree.size();
@@ -87,7 +93,7 @@ void KDTreeManager::UpdateKDtree()
 	{
 		DeactivateNode(_kdTree[i]);
 	}
-	
+
 	std::stack<int> startStack = std::stack<int>();
 	startStack.push(0);
 	std::stack<int> endStack = std::stack<int>();
@@ -95,6 +101,9 @@ void KDTreeManager::UpdateKDtree()
 	std::stack<int> nodeStack = std::stack<int>();
 	nodeStack.push(0);
 
+	// To avoid messy recursion, node starting and ending values are stored in stacks.
+	// One level of the stack represents data for a single node. Since this system uses
+	// a stack and not a queue, the tree is build depth-first. 
 	while (!startStack.empty())
 	{
 		int start = startStack.top();
@@ -125,7 +134,7 @@ void KDTreeManager::UpdateKDtree()
 			nodeStack.push(_kdTree[node]->right);
 		}
 	}
-	
+
 }
 
 void KDTreeManager::AddShape(InteractiveShape* shape)
@@ -143,22 +152,46 @@ void KDTreeManager::DumpData()
 	}
 }
 
+// This function represents the main advantage of using a K-D tree, and that is searching. A K-D tree allows for binary
+// searching when dealing with multiple dividng variables. 
 void KDTreeManager::GetNearbyShapes(InteractiveShape* shape, std::vector<InteractiveShape*>& shapeVec)
 {
 	unsigned int size = _kdTree.size();
+	float pos;
+	KDTreeNode* node;
+	int numShapes, start, end, medianIndex;
+	bool xAxis;
 	for (unsigned int i = 0; i < size;)
 	{
-		KDTreeNode* node = _kdTree[i];
-		float pos = node->axis == X_Axis ? shape->transform().position.x : shape->transform().position.y;
+		node = _kdTree[i];
+		xAxis = node->axis == X_Axis;
+		pos = xAxis ? shape->transform().position.x : shape->transform().position.y;
+		// Go down the tree until we have a hit unless we hit a dividing shape. 
 		if (pos != node->axisValue && node->depth < _maxDepth)
 			i = pos < node->axisValue ? node->left : node->right;
 		else
 		{
-			int numShapes = node->end - node->start + 1;
+			medianIndex = node->start + (node->end - node->start) / 2;
+			// Decide which side of the median we're on and return all of the shapes on the side we're on.
+			// But if we're actually on the median, then return both sides.
+			if (pos <= node->axisValue)
+			{
+				start = node->start;
+				end = medianIndex - 1;
+				if (pos == node->axisValue)
+					end = node->end;
+			}
+			else
+			{
+				start = medianIndex + 1;
+				end = node->end;
+			}
+
+			numShapes = end - start + 1;
 			shapeVec.resize(numShapes);
 			for (int j = 0; j < numShapes; ++j)
 			{
-				shapeVec[j] = _shapes[node->start + j];
+				shapeVec[j] = _shapes[start + j];
 			}
 			break;
 		}
@@ -195,6 +228,7 @@ void KDTreeManager::DeactivateNode(KDTreeNode* node)
 	node->axisValue = 0.0f;
 }
 
+// Most of this code is here for defining the transforms of the dividing lines, entirely aesthetic
 void KDTreeManager::ActivateNode(KDTreeNode* node, float axisValue)
 {
 	node->active = true;

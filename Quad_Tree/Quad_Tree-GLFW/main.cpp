@@ -1,3 +1,34 @@
+/*
+*	This example deals with spatial partitioning in two dimensions in a way that is most relevant to modern games. Quad-Trees are about
+*	dividing the game world into recursive quadrants so that the computer can know where a given shape with a collider is relative to 
+*	other colliders. While a simpler quad-tree implementation might update the tree recursively, it is generally more efficient to use
+*	an iterative method which is used in this example. 
+*
+*	1) RenderManager
+*	- This class maintains data for everything that needs to be drawn in two display lists, one for non-interactive shapes and
+*	one for interactive shapes. It handels the updating and drawing of these shapes.
+*
+*	2) InputManager
+*	- This class handles all user input from the mouse and keyboard.
+*
+*	3) QuadTreeManager
+*	- This class maintains an array of references to InteractiveShapes and every frame divides them into a quad-tree structure. It handles the 
+*	generation and updating of this information based on the locations of the interactive shapes. Furthermore, it maintains references and updates
+*	an array of division line RenderShapes that serve to more clearly depict what the current state of the quad tree is.
+*
+*	RenderShape
+*	- Holds the instance data for a shape that can be rendered to the screen. This includes a transform, a vao, a shader, the drawing
+*	mode (eg triangles, lines), it's active state, and its color
+*
+*	InteractiveShape
+*	- Inherits from RenderShape, possessing all the same properties. Additionally, it has a collider and can use it to check collisions against
+*	world boundries, other colliders, and the cursor.
+*
+*	Init_Shader
+*	- Contains static functions for loading, compiling and linking shaders.
+*
+*/
+
 #include <GLEW\GL\glew.h>
 #include <GLFW\glfw3.h>
 #include <GLM\gtc\type_ptr.hpp>
@@ -51,11 +82,6 @@ void initShaders()
 	int numShaders = 2;
 	
 	shaderProgram = initShaders(shaders, types, numShaders);
-	
-	// Bind buffer data to shader values
-	posAttrib = glGetAttribLocation(shaderProgram, "position");
-	glEnableVertexAttribArray(posAttrib);
-	glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
 	uTransform = glGetUniformLocation(shaderProgram, "transform");
 	uColor = glGetUniformLocation(shaderProgram, "color");
@@ -79,20 +105,25 @@ void init()
 	glewExperimental = true;
 	glewInit();
 
+	initShaders();
+
 	// Store the data for the triangles in a buffer that the gpu can use to draw
+	glGenVertexArrays(1, &vao0);
+	glBindVertexArray(vao0);
+
 	glGenBuffers(1, &vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-	glGenVertexArrays(1, &vao0);
-	glBindVertexArray(vao0);
 
 	glGenBuffers(1, &ebo0);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo0);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
 
-	// Compile shaders
-	initShaders();
+	// Bind buffer data to shader values
+	posAttrib = glGetAttribLocation(shaderProgram, "position");
+	glEnableVertexAttribArray(posAttrib);
+	glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
+
 
 	glGenVertexArrays(1, &vao1);
 	glBindVertexArray(vao1);
@@ -105,9 +136,13 @@ void init()
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo1);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(outlineElements), outlineElements, GL_STATIC_DRAW);
 
-	glfwSetTime(0.0f);
+	// Bind buffer data to shader values
+	posAttrib = glGetAttribLocation(shaderProgram, "position");
+	glEnableVertexAttribArray(posAttrib);
+	glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
-	initShaders();
+
+	glfwSetTime(0.0f);
 
 	Shader shader;
 	shader.shaderPointer = shaderProgram;

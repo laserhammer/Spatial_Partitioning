@@ -9,6 +9,8 @@ unsigned int QuadTreeManager::_maxDepth = 0;
 unsigned int QuadTreeManager::_maxPerNode = 0;
 RenderShape QuadTreeManager::_outlineTemplate;
 
+// When the quad-tree manager is initialized, it instantiates the entire possible tree to avoid having to do a bunch of 
+// time wasting news and deletes during runtime.
 void QuadTreeManager::InitQuadTree(float left, float right, float top, float bottom, unsigned int maxDepth, unsigned int maxPerNode, RenderShape outlineTemplate)
 {
 	_maxPerNode = maxPerNode;
@@ -23,6 +25,8 @@ void QuadTreeManager::InitQuadTree(float left, float right, float top, float bot
 	}
 }
 
+// When updateing the tree, the manager goes through and deactivates every node in the tree and then reactivates the root.
+// It then goes through the entire array of interactive shapes and adds them back into the tree. 
 void QuadTreeManager::UpdateQuadtree()
 {
 	unsigned int treeSize = _quadTree.size();
@@ -43,6 +47,8 @@ void QuadTreeManager::AddShape(InteractiveShape* shape)
 	_shapes.push_back(shape);
 }
 
+// When the program ends, the manager has to go through and delete all of the nodes of quad tree that it instantiated
+// during the init function.
 void QuadTreeManager::DumpData()
 {
 	int i;
@@ -53,6 +59,9 @@ void QuadTreeManager::DumpData()
 	}
 }
 
+// Retrieves all the shapes that share a node with the shape passed in. It uses a method similar to when a shape is being
+// added to the tree. When it gets to the lowest node that the argument shape collides with, it returns the array of shapes
+// associated with that node.
 const std::vector<InteractiveShape*>& QuadTreeManager::GetNearbyShapes(InteractiveShape* shape)
 {
 	unsigned int treeSize = _quadTree.size();
@@ -95,6 +104,9 @@ const std::vector<InteractiveShape*>& QuadTreeManager::GetNearbyShapes(Interacti
 	}
 }
 
+// Adds the given shape to the quad tree beginnng at the node index passed in. Shapes are added to the first node that with which they have a successful collision
+// If they only have a partial collision, they are added to that node's parent. If a node is at the bottom of the activated tree, and it exceeds the max number
+// of shapes, then each of it's shapes are added back into the tree, passing that node's index as the starting node and that node's children are activated. 
 void QuadTreeManager::AddShape(InteractiveShape* shape, int startingNode)
 {
 	unsigned int treeSize = _quadTree.size();
@@ -111,6 +123,8 @@ void QuadTreeManager::AddShape(InteractiveShape* shape, int startingNode)
 		// Partial collision
 		if (result == 1)
 		{
+			// This check prevens the issue of having shapes on the edge of the root node. Since the root node has no
+			// parent nodes, any partial collisions with the root have to be considered full collisions. 
 			if (currentNode->depth != 0)
 			{
 				_quadTree[currentNode->parent]->shapes.push_back(shape);
@@ -157,6 +171,7 @@ void QuadTreeManager::AddShape(InteractiveShape* shape, int startingNode)
 	}
 }
 
+// Just an AABB collision
 int QuadTreeManager::CheckShapeNodeCollide(InteractiveShape* shape, QuadTreeNode* node)
 {
 	// 0 = no collision

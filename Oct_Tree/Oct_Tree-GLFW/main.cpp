@@ -1,3 +1,33 @@
+/*
+*	This example builds upon the quad-tree example by now partitioning 3-D space into an oct-tee. The majority of the code is 
+*	the same as before, except now the nodes are divided into 8 children instead of only 3 and collisions are also tested on the 
+*	z-axis now. Once again all tree updating is handled iteratively.
+*
+*	1) RenderManager
+*	- This class maintains data for everything that needs to be drawn in two display lists, one for non-interactive shapes and
+*	one for interactive shapes. It handels the updating and drawing of these shapes.
+*
+*	2) InputManager
+*	- This class handles all user input from the mouse and keyboard.
+*
+*	3) OctTreeManager
+*	- This class maintains an array of references to InteractiveShapes and every frame divides them into an oct-tree structure. It handles the
+*	generation and updating of this information based on the locations of the interactive shapes. Furthermore, it maintains references and updates
+*	an array of division line RenderShapes that serve to more clearly depict what the current state of the quad tree is.
+*
+*	RenderShape
+*	- Holds the instance data for a shape that can be rendered to the screen. This includes a transform, a vao, a shader, the drawing
+*	mode (eg triangles, lines), it's active state, and its color
+*
+*	InteractiveShape
+*	- Inherits from RenderShape, possessing all the same properties. Additionally, it has a collider and can use it to check collisions against
+*	world boundries, other colliders, and the cursor.
+*
+*	Init_Shader
+*	- Contains static functions for loading, compiling and linking shaders.
+*
+*/
+
 #include <GLEW\GL\glew.h>
 #include <GLFW\glfw3.h>
 #include <iostream>
